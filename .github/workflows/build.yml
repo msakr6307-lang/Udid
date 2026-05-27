@@ -1,0 +1,55 @@
+name: Build iOS Dylib
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            clang \
+            make \
+            git \
+            wget \
+            curl \
+            xz-utils \
+            tar
+
+      - name: Clone Theos
+        run: |
+          git clone --recursive https://github.com/theos/theos.git $HOME/theos
+
+      - name: Setup Theos
+        run: |
+          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+
+      - name: Install iOS SDK
+        run: |
+          wget https://github.com/theos/sdks/archive/master.zip
+          unzip master.zip
+          mkdir -p $HOME/theos/sdks
+          cp -R sdks-master/*.sdk $HOME/theos/sdks/
+
+      - name: Verify Theos
+        run: |
+          ls $HOME/theos
+          ls $HOME/theos/sdks
+
+      - name: Build Dylib
+        run: |
+          make clean
+          make package FINALPACKAGE=1
+
+      - name: Upload Deb
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: packages/*.deb
