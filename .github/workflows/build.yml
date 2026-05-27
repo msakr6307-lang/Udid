@@ -1,0 +1,62 @@
+name: Build iOS Dylib
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            clang \
+            make \
+            git \
+            wget \
+            xz-utils \
+            tar \
+            ldid
+
+      - name: Download iOS Toolchain
+        run: |
+          mkdir -p toolchain
+          cd toolchain
+
+          echo "Downloading toolchain..."
+
+          wget -O toolchain.tar.xz https://github.com/theos/theos/releases/latest/download/theos.tar.xz
+
+          if [ ! -s toolchain.tar.xz ]; then
+            echo "Toolchain download failed!"
+            exit 1
+          fi
+
+          file toolchain.tar.xz
+
+          tar -xJf toolchain.tar.xz
+
+      - name: Setup Theos
+        run: |
+          echo "THEOS=$(pwd)/toolchain/theos" >> $GITHUB_ENV
+
+      - name: Verify Theos
+        run: |
+          ls toolchain
+          echo $THEOS
+
+      - name: Build Dylib
+        run: |
+          make clean
+          make package FINALPACKAGE=1
+
+      - name: Upload Deb
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: packages/*.deb
