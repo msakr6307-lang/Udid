@@ -1,0 +1,42 @@
+name: iOS Dylib Cloud Compiler
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest # التعديل السحري عشان يشتغل في ثانية
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential xz-utils ldid curl git
+
+    - name: Setup Theos Environment
+      run: |
+        export THEOS=/opt/theos
+        sudo git clone --recursive https://github.com/theos/theos.git $THEOS
+        sudo chown -R $(whoami) $THEOS
+        
+    - name: Setup iOS SDK
+      run: |
+        git clone https://github.com/theos/sdks.git /opt/theos/sdks-master
+        mkdir -p /opt/theos/sdks
+        cp -r /opt/theos/sdks-master/iPhoneOS16.5.sdk /opt/theos/sdks/
+        
+    - name: Compile Dylib
+      run: |
+        export THEOS=/opt/theos
+        make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
+        
+    - name: Upload Output Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: iOS-Compiled-Dylib
+        path: .theos/obj/debug/*.dylib
