@@ -1,0 +1,41 @@
+name: iOS Dylib Cloud Compiler
+
+on:
+  workflow_dispatch: # بيخليك تشغل البناء يدوياً بزرار من التليفون
+
+jobs:
+  build:
+    runs-on: macos-13 # هنستخدم سيرفر ماك رسمي من جيت هوب
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Install System Dependencies
+      run: |
+        brew install ldid xz
+        
+    - name: Setup Theos Environment
+      run: |
+        export THEOS=/opt/theos
+        sudo git clone --recursive https://github.com/theos/theos.git $THEOS
+        sudo chown -R $(whoami) $THEOS
+        
+    - name: Setup iOS SDK
+      run: |
+        # تحميل الـ SDK الخاص بالآيفون عشان يترجم الأكواد للـ iOS
+        git clone https://github.com/theos/sdks.git /opt/theos/sdks-master
+        mkdir -p /opt/theos/sdks
+        cp -r /opt/theos/sdks-master/iPhoneOS16.5.sdk /opt/theos/sdks/
+        
+    - name: Compile Dylib
+      run: |
+        export THEOS=/opt/theos
+        # الأمر السحري اللي هيصنع ملف الـ dylib
+        make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
+        
+    - name: Upload Output Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: iOS-Compiled-Dylib
+        path: .theos/obj/debug/*.dylib # المسار اللي بيطلع فيه الملف النهائي
