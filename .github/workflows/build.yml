@@ -1,0 +1,98 @@
+name: Build iOS Tweak
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+
+          sudo apt install -y \
+            bash \
+            clang \
+            curl \
+            file \
+            gawk \
+            gcc \
+            git \
+            gzip \
+            make \
+            perl \
+            tar \
+            unzip \
+            wget \
+            xz-utils \
+            zip \
+            libc6-dev
+
+      - name: Clone Theos
+        run: |
+          git clone --recursive https://github.com/theos/theos.git $HOME/theos
+
+          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+          echo "$HOME/theos/bin" >> $GITHUB_PATH
+
+      - name: Install SDKs
+        run: |
+          mkdir -p $HOME/theos/sdks
+          
+          wget https://github.com/theos/sdks/archive/master.zip -O sdks.zip
+          
+          unzip -o sdks.zip
+          
+          cp -R sdks-master/*.sdk $HOME/theos/sdks/
+
+      - name: Install ldid
+        run: |
+          git clone https://github.com/ProcursusTeam/ldid.git
+          
+          cd ldid
+          
+          ./make.sh
+          
+          sudo cp ldid /usr/local/bin/
+
+      - name: Verify Environment
+        run: |
+          export THEOS=$HOME/theos
+          export PATH=$THEOS/bin:$PATH
+
+          which perl
+          which make
+          which clang
+          which ldid
+
+          ls $HOME/theos/bin
+          ls $HOME/theos/sdks
+
+      - name: Fix Permissions
+        run: |
+          chmod +x $HOME/theos/bin/*
+          chmod -R +x $HOME/theos/bin
+
+      - name: Build Package
+        run: |
+          export THEOS=$HOME/theos
+          export PATH=$THEOS/bin:$PATH
+
+          make clean
+
+          make package FINALPACKAGE=1 \
+            THEOS_PACKAGE_SCHEME=rootless \
+            messages=yes
+
+      - name: Upload Deb
+        uses: actions/upload-artifact@v4
+        with:
+          name: Built-DEB
+          path: |
+            packages/*.deb
+            .theos/obj/**/*.log
