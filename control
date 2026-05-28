@@ -1,0 +1,8 @@
+Package: com.mustafa.bypasstweak
+Name: Bypass Tweak
+Version: 1.0.0
+Architecture: iphoneos-arm
+Description: Bypass License for external dylib
+Maintainer: MUSTAFA VIP
+Author: MUSTAFA VIP
+Section: Tweaks
